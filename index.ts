@@ -20,12 +20,13 @@ Bun.serve<WebSocketData>({
         }
 
         if (Bun.env.UPDATEFLAG && request.url.includes(Bun.env.UPDATEFLAG)) {
+            let url = new URL (request.url);
             if (!triggerNotification) logWithTimestamp("Updated flag, notifying servers")
 
             triggerNotification = true;
             Object.keys(clients).forEach(clientId => {
                 if (!(clientId in ackClients)) {
-                    clients[clientId].send("NOTIFICATION");
+                    clients[clientId].send(url.pathname.split("/")[1]);
                 }
                 ackClients[clientId] = false;
             })
@@ -50,6 +51,11 @@ Bun.serve<WebSocketData>({
                 triggerNotification = false;
                 logWithTimestamp(`All clients send ACK signal, resetting`)
             }
+        },
+        close(ws) {
+            delete clients[ws.data.id]
+            delete ackClients[ws.data.id]
+            logWithTimestamp(`Disconnected (WS) ${ws.remoteAddress} (${ws.data.id})`);
         }
     },
     port: 80
