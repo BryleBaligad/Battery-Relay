@@ -18,6 +18,7 @@ Bun.serve<WebSocketData>({
 
         let url = new URL (request.url);
         Object.keys(clients).forEach(clientId => {
+            logWithTimestamp(`Sent clients ${url.pathname.split("/")[1]}`)
             clients[clientId].send(url.pathname.split("/")[1]);
         })
         return new Response("Success");
