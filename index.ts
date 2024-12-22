@@ -6,7 +6,6 @@ import { allAck } from "./haveAllClientsSentAck";
 
 let clients: Record<string, ServerWebSocket<WebSocketData>> = {}
 let ackClients: Record<string, boolean> = {}
-let triggerNotification = false;
 
 Bun.serve<WebSocketData>({
     fetch(request, server) {
@@ -19,21 +18,14 @@ Bun.serve<WebSocketData>({
             return;
         }
 
-        if (Bun.env.UPDATEFLAG && request.url.includes(Bun.env.UPDATEFLAG)) {
-            let url = new URL (request.url);
-            if (!triggerNotification) logWithTimestamp("Updated flag, notifying servers")
-
-            triggerNotification = true;
-            Object.keys(clients).forEach(clientId => {
-                if (!(clientId in ackClients)) {
-                    clients[clientId].send(url.pathname.split("/")[1]);
-                }
-                ackClients[clientId] = false;
-            })
-            return new Response("Success");
-        }
-
-        return new Response("Upgrade required");
+        let url = new URL (request.url);
+        Object.keys(clients).forEach(clientId => {
+            if (!(clientId in ackClients)) {
+                clients[clientId].send(url.pathname.split("/")[1]);
+            }
+            ackClients[clientId] = false;
+        })
+        return new Response("Success");
     },
     websocket: {
         open(ws) {
@@ -48,7 +40,6 @@ Bun.serve<WebSocketData>({
 
             if (allAck(ackClients)) {
                 ackClients = {};
-                triggerNotification = false;
                 logWithTimestamp(`All clients send ACK signal, resetting`)
             }
         },
