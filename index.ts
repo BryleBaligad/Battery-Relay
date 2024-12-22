@@ -60,6 +60,6 @@ setInterval(() => {
     Object.keys(clients).forEach(clientId => {
         clients[clientId].send(new ArrayBuffer());
     })
-}, 1000);
+}, 5000);
 
 logWithTimestamp("Started Battery-Relay")
