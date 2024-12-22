@@ -2,10 +2,8 @@ import type { ServerWebSocket } from "bun";
 import { random } from "./randomString";
 import type { WebSocketData } from "./types/WebSocketData";
 import { logWithTimestamp } from "./log";
-import { allAck } from "./haveAllClientsSentAck";
 
 let clients: Record<string, ServerWebSocket<WebSocketData>> = {}
-let ackClients: Record<string, boolean> = {}
 
 Bun.serve<WebSocketData>({
     fetch(request, server) {
@@ -20,10 +18,7 @@ Bun.serve<WebSocketData>({
 
         let url = new URL (request.url);
         Object.keys(clients).forEach(clientId => {
-            if (!(clientId in ackClients)) {
-                clients[clientId].send(url.pathname.split("/")[1]);
-            }
-            ackClients[clientId] = false;
+            clients[clientId].send(url.pathname.split("/")[1]);
         })
         return new Response("Success");
     },
@@ -34,18 +29,12 @@ Bun.serve<WebSocketData>({
         },
         message(ws, msg) {
             if (msg.includes("ACK")) {
-                ackClients[ws.data.id] = true;
                 logWithTimestamp(`${ws.data.id} acknowledged call`)
             }
 
-            if (allAck(ackClients)) {
-                ackClients = {};
-                logWithTimestamp(`All clients send ACK signal, resetting`)
-            }
         },
         close(ws) {
             delete clients[ws.data.id]
-            delete ackClients[ws.data.id]
             logWithTimestamp(`Disconnected (WS) ${ws.remoteAddress} (${ws.data.id})`);
         }
     },
